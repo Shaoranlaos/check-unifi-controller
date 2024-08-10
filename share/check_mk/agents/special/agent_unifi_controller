@@ -23,7 +23,7 @@
 ##  SOFTWARE.
 
 ### 
-__VERSION__ = 0.88
+__VERSION__ = 0.90
 
 import sys
 import socket
@@ -195,11 +195,14 @@ class unifi_network_ssid(unifi_object):
         self._UNIFI_SITE = self._PARENT._PARENT
         for _k,_v in getattr(self,"reasons_bar_chart_now",{}).items():
             setattr(self,_k,_v)
-        setattr(self,f"{self.radio}_num_sta",self.num_sta)
-        setattr(self,f"{self.radio}_tcp_packet_loss",self.tcp_packet_loss)
-        setattr(self,f"{self.radio}_wifi_retries",self.wifi_retries)
-        setattr(self,f"{self.radio}_wifi_latency",self.wifi_latency)
-        setattr(self,f"{self.radio}_avg_client_signal",self.avg_client_signal)
+        try:
+          setattr(self,f"{self.radio}_num_sta",self.num_sta)
+          setattr(self,f"{self.radio}_tcp_packet_loss",self.tcp_packet_loss)
+          setattr(self,f"{self.radio}_wifi_retries",self.wifi_retries)
+          setattr(self,f"{self.radio}_wifi_latency",self.wifi_latency)
+          setattr(self,f"{self.radio}_avg_client_signal",self.avg_client_signal)
+        except:
+          sys.exc_info()
     def __str__(self):
         _ret = []
         _unwanted = ["essid","radio","id","t","name","radio_name","wlanconf_id","is_wep","up","site_id","ap_mac","state",
@@ -438,7 +441,7 @@ class unifi_controller(unifi_object):
         for _dev in self._UNIFI_DEVICES:
             _dev._get_uplink()
         if hasattr(self,"cloudkey_version"):
-            self.cloudkey_version = re.sub(".*?v(\d+\.\d+\.\d+\.[a-z0-9]+).*","\\1",self.cloudkey_version)
+            self.cloudkey_version = re.sub(r".*?v(\d+\.\d+\.\d+\.[a-z0-9]+).*","\\1",self.cloudkey_version)
         self.type = getattr(self,"ubnt_device_type","unifi-sw-controller")
         self.controller_version = self.version
         delattr(self,"version")
@@ -552,7 +555,8 @@ class unifi_controller_api(object):
 
     def check_unifi_os(self):
         _response = self.request("GET",url=self.url,allow_redirects=False)
-        self.is_unifios= _response.status_code == 200 and _response.headers.get("x-csrf-token")
+        self.is_unifios= _response.status_code == 200 and _response.headers.get("access-control-allow-credentials")
+        #self.is_unifios = _response.status_code == 200 and 'Unifi OS' in str(_response.content)
 
     def get_sysinfo(self):
         return self.get_data("/stat/sysinfo")
@@ -635,7 +639,8 @@ if __name__ == '__main__':
     parser.add_argument("host",type=str,
                         help="""Host name or IP address of Unifi Controller""")
     args = parser.parse_args()
-
+    print("<<<check_mk>>>")
+    print(f"Version: {__VERSION__}")
     try:
         _api = unifi_controller_api(**args.__dict__)
     except socket.error as e:
@@ -643,11 +648,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     if _api.is_unifios:
-
-        labels = {"cmk/os_family": "UnifiOS"}
-        print("<<<labels:sep(0)>>>"
-        print(json.dumps(labels))
-
+        print("AgentOS: UnifiOS")
     ##pprint(_api.get_data("/stat/rogueap?within=4"))
     ##pprint(_api.get_data("/rest/user",site="default",method="GET"))
     ##pprint(_api.get_data("/stat/sta",site="default",method="GET"))
