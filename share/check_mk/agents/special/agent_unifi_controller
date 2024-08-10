@@ -639,6 +639,7 @@ if __name__ == '__main__':
     parser.add_argument("host",type=str,
                         help="""Host name or IP address of Unifi Controller""")
     args = parser.parse_args()
+
     print("<<<check_mk>>>")
     print(f"Version: {__VERSION__}")
     try:
@@ -649,6 +650,9 @@ if __name__ == '__main__':
 
     if _api.is_unifios:
         print("AgentOS: UnifiOS")
+        labels = {"cmk/os_family": "UnifiOS"}
+        print("<<<labels:sep(0)>>>")
+        print(json.dumps(labels))
     ##pprint(_api.get_data("/stat/rogueap?within=4"))
     ##pprint(_api.get_data("/rest/user",site="default",method="GET"))
     ##pprint(_api.get_data("/stat/sta",site="default",method="GET"))
